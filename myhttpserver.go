@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 	"path/filepath"
 	"syscall"
 )
@@ -27,10 +28,12 @@ type Log struct {
 }
 
 const defaultConfigFile = "config.json"
-
 var myConf *MyConfig
+var startTime time.Time
 
 func main() {
+	startTime = time.Now()
+
 	// Parse Command-Line Flags
 	confFilepathPtr := flag.String("c", defaultConfigFile, "Specify an alternative config file")
 	flag.Parse()
@@ -51,9 +54,15 @@ func main() {
 	go func() {
 		printOSEnvVersion()
 
+		// Startup consuming time 5 sec
+		for i:=0; i<5; i++ {
+			log.Print("Server is starting ...")
+			time.Sleep(time.Second)
+		}
+
 		serverHost := myConf.Server.Host
 		serverPort := myConf.Server.Port
-		log.Print("HTTP Server starting, listening on " + serverHost + ":" + serverPort)
+		log.Print("HTTP Server started, listening on " + serverHost + ":" + serverPort)
 		if err := http.ListenAndServe(serverHost + ":" + serverPort, nil); err != http.ErrServerClosed {
 			log.Fatalf("HTTP server crashed: %v", err)
 		}
@@ -119,8 +128,15 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 
 // 当访问 /healthz 时，状态码200，返回success字样
 func handleHealthz(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "success\n")
-	printRequestHeaders(w, r)
+	cost:=time.Since(startTime)
+	log.Print("cost:", cost)
+	
+	if cost > 10 * time.Second {
+		fmt.Fprintf(w, "success\n")
+		printRequestHeaders(w, r)
+	} else {
+		http.Error(w, "failed", http.StatusInternalServerError)
+	}
 }
 
 // 读取当前系统的环境变量中的 VERSION 配置

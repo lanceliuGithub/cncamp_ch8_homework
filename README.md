@@ -14,6 +14,60 @@ make
 make build
 ```
 
+# 应用配置说明
+
+手工编译代码后，应用的二进制会输出到 bin/linux/amd64 目录下
+```
+bin
+└── linux
+    └── amd64
+        ├── config.json
+        └── myhttpserver-1.0
+```
+
+同时在相同目录下会生成一份默认配置文件 config.json
+```
+{
+	"server": {
+		"host": "0.0.0.0",
+		"port": "8888"
+	},
+	"log": {
+		"enable": true,
+		"request_header": false
+	}
+}
+```
+
+其中 server.host 是服务器监听的主机，server.port 是服务器监听的端口
+
+log.enable 是记录后台日志的总开关，开启后日志会直接打印在控制台中，默认开启
+
+log.request_header 是细化的日志开关（只有 log.enable 为 true 时才生效），此选项默认关闭
+
+# 应用启动说明
+
+查看启动选项
+```
+./myhttpserver-1.0 -h
+Usage of ./myhttpserver-1.0:
+  -c string
+    	Specify an alternative config file (default "config.json")
+```
+
+目前只有一个选项 -c ，用于指定不同的配置文件供服务器加载
+```
+./myhttpserver-1.0 -c /etc/another_config.json
+```
+
+本HTTP服务器启动后，会模拟两个阶段的耗时
+1. 启动耗时，共5s
+2. 服务就绪耗时，共10s
+
+启动耗时是从应用启动后，到端口被侦听这段时间，耗时5s
+
+服务器就绪耗时是等启动耗时过去后，再等5s，/healthz接口才能返回成功，否则返回500状态码和failed包体
+
 # 制作容器镜像
 
 生成容器镜像

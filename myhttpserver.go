@@ -74,6 +74,7 @@ func main() {
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGQUIT,
+		syscall.SIGTERM,
 	)
 
 	<-signalChan
@@ -129,8 +130,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 // 当访问 /healthz 时，状态码200，返回success字样
 func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	cost:=time.Since(startTime)
-	log.Print("cost:", cost)
-	
+
 	if cost > 10 * time.Second {
 		fmt.Fprintf(w, "success\n")
 		printRequestHeaders(w, r)

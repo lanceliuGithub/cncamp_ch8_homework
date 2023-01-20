@@ -87,17 +87,34 @@ make push
 docker login
 ```
 
-# 使用Docker启动应用
+# 使用K8S部署应用
+
+配置文件位于 k8s-plan/graceful-pod.yaml
 
 运行如下命令
 ```
-docker run -d --name myhttpserver -e VERSION=1.0 -p 80:8888 lanceliu2022/myhttpserver:1.0
+kubectl apply -f k8s-plan/graceful-pod.yaml
 ```
-其中的 VERSION 环境变量可以省略，默认是1.0
 
-打开方式（localhost可以更换为任意服务端IP）
+观察Pod的状态变化
+```
+kubectl get pod myhttpserver -w
+```
+
+查看HTTP服务器后台日志
+```
+kubectl logs -f myhttpserver
+```
+
+
+在宿主机上访问HTTP服务
 
 - 首页: http://localhost
 - 健康检查页: http://localhost/healthz
 - 缺失的页面: http://localhost/no_such_page
+
+移除应用
+```
+kubectl delete -f k8s-plan/graceful-pod.yaml
+```
 

@@ -87,7 +87,7 @@ make push
 docker login
 ```
 
-# 使用K8S部署应用
+# 使用K8S优雅管理一个Pod
 
 配置文件位于 k8s-plan/graceful-pod.yaml
 
@@ -118,3 +118,57 @@ kubectl logs -f myhttpserver
 kubectl delete -f k8s-plan/graceful-pod.yaml
 ```
 
+# 使用K8S维护一个安全且高可用的服务
+
+配置文件位于 k8s-plan/secure-ha-service 目录下
+
+部署所有对象
+```
+kubectl apply \
+  -f 1.config.yaml \
+  -f 2.deploy.yaml \
+  -f 3.service.yaml \
+  -f 4.ingress-nginx-deploy.yaml \
+  -f 5.ingress-cert.yaml \
+  -f 6.ingress.yaml
+```
+
+卸载所有对象
+```
+kubectl delete \
+  -f 6.ingress.yaml \
+  -f 5.ingress-cert.yaml \
+  -f 4.ingress-nginx-deploy.yaml \
+  -f 3.service.yaml \
+  -f 2.deploy.yaml \
+  -f 1.config.yaml
+```
+
+注意：卸载时，如果报如下错误，可以稍等一会再试
+```
+Error from server (InternalError): error when creating "6.ingress.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": dial tcp 10.105.108.221:443: connect: connection refused
+```
+
+发起HTTP访问
+```
+GATEWAY=`kubectl get -n ingress-nginx svc ingress-nginx-controller -ojson | jq -r '.spec.clusterIP'`
+curl -k -H "Host: lancelot.cn" https://$GATEWAY/healthz
+```
+
+对象yaml说明：
+- 1.config.yaml   HTTP服务器的配置文件对象（ConfigMap）
+- 2.deploy.yaml   HTTP服务器的部署对象（Deployment）
+- 3.service.yaml  HTTP服务器的服务对象（Service）
+- 4.ingress-nginx-deploy.yaml   Nginx实现的Ingress控制器
+- 5.ingress-cert.yaml   HTTP服务器的TLS证书（Secret TLS）
+- 6.ingress.yaml  HTTP服务器的网关对象（Ingress）
+
+重新生成证书使用命令并同时修改 5.ingress-cert.yaml：
+```
+cd k8s-plan/secure-ha-service
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+-subj "/CN=lancelot.cn/O=lancelot" \
+-addext "subjectAltName = DNS:lancelot.cn" \
+-keyout lancelot_cn.key -out lancelot_cn.crt
+```
